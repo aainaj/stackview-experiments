@@ -16,12 +16,21 @@ enum FormSection: String, CaseIterable {
     case labelContent = "Label Content"
 }
 
-enum FormFieldType {
+enum FormFieldType: Equatable, Hashable {
     case textField(dropDownElements: [String])
-    case textView(texts: [String])
+    case textView(text: String)
     case slider
 }
 
-struct FormData {
+struct FormData: Hashable {
     let fieldType: FormFieldType
 }
+
+struct FormDataList {
+    let axis: [FormData]
+    let distribution: [FormData]
+    let alignment: [FormData]
+    let spacing: [FormData]
+    let labelContent: [FormData]
+}
+  

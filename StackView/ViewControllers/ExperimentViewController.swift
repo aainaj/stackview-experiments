@@ -31,14 +31,15 @@ final class ExperimentViewController: UIViewController {
 
 // MARK: Private functions
 private extension ExperimentViewController {
-    func makeHomeDataList() -> [FormData] {
+    func makeHomeDataList() -> FormDataList {
         let axisData = FormData(fieldType: .textField(dropDownElements: StackViewAxis.allCases.map { $0.rawValue }))
         let distributionData = FormData(fieldType: .textField(dropDownElements: StackViewDistribution.allCases.map { $0.rawValue }))
         let alignmentData = FormData(fieldType: .textField(dropDownElements: StackViewAlignment.allCases.map { $0.rawValue }))
         let sliderData = FormData(fieldType: .slider)
-        let textViewData = FormData(fieldType: .textView(texts: ["Lorem Ipsum", "Lorem Ipsum"]))
+        let textViewData1 = FormData(fieldType: .textView(text: "Lorem Ipsum"))
+        let textViewData2 = FormData(fieldType: .textView(text: "Lorem Ipsum Dolor"))
         
-        return [axisData, distributionData, alignmentData, sliderData, textViewData]
+        return FormDataList(axis: [axisData], distribution: [distributionData], alignment: [alignmentData], spacing: [sliderData], labelContent: [textViewData1, textViewData2])
     }
     
     func setupViews() {

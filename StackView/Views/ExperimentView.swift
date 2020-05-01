@@ -43,7 +43,7 @@ final class ExperimentView: UIView {
             self.leftLabelText.text = attributes.leftLabel
             self.rightLabelText.text = attributes.rightLabel
         }
-        constraints(for: stackView).forEach { print($0) }
+      //  constraints(for: stackView).forEach { print($0) }
     }
 }
 
@@ -59,7 +59,7 @@ private extension ExperimentView {
     
     func applyConstraints() {
         NSLayoutConstraint.activate([
-            stackView.leadingAnchor.constraint(equalTo: leadingAnchor, constant: CGFloat(16)),
+            stackView.leadingAnchor.constraint(equalTo: leadingAnchor, constant: 16),
             trailingAnchor.constraint(equalTo: stackView.trailingAnchor, constant: 16),
             stackView.topAnchor.constraint(equalTo: topAnchor, constant: 16),
             bottomAnchor.constraint(equalTo: stackView.bottomAnchor, constant: 16)

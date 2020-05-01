@@ -23,7 +23,7 @@ struct StackViewAttributes: Hashable {
         var alignment: UIStackView.Alignment = .fill
         var spacing: CGFloat = 0
         var leftLabel: String = "Lorem Ipsum"
-        var rightLabel: String = "Lorem Ipsum"
+        var rightLabel: String = "Lorem Ipsum Dolor"
         
         func set(axis newValue: NSLayoutConstraint.Axis?) {
             self.axis = newValue ?? axis

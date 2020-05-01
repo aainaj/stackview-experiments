@@ -9,20 +9,19 @@
 import UIKit
 
 final class FormView: UIView {
-    private var formDataList: [FormData]?
     private let stackViewAttributesBuilder = StackViewAttributes.Builder()
     private let experimentView: ExperimentView = ExperimentView.build()
-    private var currentStackViewAttributes: StackViewAttributes
+    var currentStackViewAttributes: StackViewAttributes
     
     private lazy var tableView: UITableView = {
         let view = UITableView(frame: .zero, style: .insetGrouped)
         view.translatesAutoresizingMaskIntoConstraints = false
         view.delegate = self
-        view.dataSource = self
-        view.rowHeight = UITableView.automaticDimension
-        view.estimatedRowHeight = 120
         return view
     }()
+    
+    private lazy var dataSource = makeDataSource()
+    var snapshot = NSDiffableDataSourceSnapshot<FormSection, FormData>()
     
     override init(frame: CGRect) {
         currentStackViewAttributes = stackViewAttributesBuilder.build()
@@ -41,59 +40,20 @@ final class FormView: UIView {
         applyConstraints()
 
         registerCells()
+        tableView.dataSource = dataSource
     }
     
-    func update(with formDataList: [FormData]) {
-        self.formDataList = formDataList
-        experimentView.relayoutStackView(with: currentStackViewAttributes)
-    }
-}
+    func update(with list: FormDataList) {
+        snapshot.appendSections(FormSection.allCases)
+        
+        snapshot.appendItems(list.axis, toSection: .axis)
+        snapshot.appendItems(list.distribution, toSection: .distribution)
+        snapshot.appendItems(list.alignment, toSection: .alignment)
+        snapshot.appendItems(list.spacing, toSection: .spacing)
+        snapshot.appendItems(list.labelContent, toSection: .labelContent)
 
-extension FormView: UITableViewDataSource, UITableViewDelegate {
-    func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
-        guard FormSection.allCases[section] == .labelContent else {
-            return 1
-        }
-        return 2
-    }
-    
-    func numberOfSections(in tableView: UITableView) -> Int {
-        return FormSection.allCases.count
-    }
-    
-    func tableView(_ tableView: UITableView, titleForHeaderInSection section: Int) -> String? {
-        return FormSection.allCases[section].rawValue
-    }
-    
-    func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
-        guard let formData = formDataList?[indexPath.section] else {
-             fatalError()
-        }
-        let section = FormSection.allCases[indexPath.section]
-        switch formData.fieldType {
-        case .textField(let pickerElements):
-            let cell = tableView.dequeueReusableCell(withIdentifier: String(describing: TextFieldCell.self), for: indexPath) as! TextFieldCell
-            cell.update(with: pickerElements, updateValueAction: { [weak self] element in
-                self?.updateValue(section: section, element: element)
-            })
-            return cell
-        case .slider:
-            let cell = tableView.dequeueReusableCell(withIdentifier: String(describing: SliderCell.self), for: indexPath) as! SliderCell
-            cell.update(with: { [weak self] element in
-                self?.updateValue(section: section, element: element)
-            })
-            return cell
-        case .textView(let texts):
-            let cell = tableView.dequeueReusableCell(withIdentifier: String(describing: TextViewCell.self), for: indexPath) as! TextViewCell
-            cell.update(with: texts[indexPath.row], updateValueAction: { [weak self] element in
-                self?.updateText(element: element, row: indexPath.row)
-            })
-            return cell
-        }
-    }
-    
-    func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
-        tableView.deselectRow(at: indexPath, animated: true)
+        dataSource.apply(snapshot, animatingDifferences: true)
+        experimentView.relayoutStackView(with: currentStackViewAttributes)
     }
     
     func relayoutStackView() {
@@ -103,6 +63,12 @@ extension FormView: UITableViewDataSource, UITableViewDelegate {
         }
         experimentView.relayoutStackView(with: stackViewAttributes)
         currentStackViewAttributes = stackViewAttributes
+    }
+}
+
+extension FormView: UITableViewDelegate {
+    func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
+        tableView.deselectRow(at: indexPath, animated: true)
     }
 }
 
@@ -117,15 +83,46 @@ private extension FormView {
         NSLayoutConstraint.activate([
             tableView.topAnchor.constraint(equalTo: topAnchor),
             tableView.leadingAnchor.constraint(equalTo: leadingAnchor),
-            tableView.trailingAnchor.constraint(equalTo: trailingAnchor)
+            trailingAnchor.constraint(equalTo: tableView.trailingAnchor)
         ])
         
         NSLayoutConstraint.activate([
             experimentView.topAnchor.constraint(equalTo: tableView.bottomAnchor),
-            experimentView.leadingAnchor.constraint(equalTo: leadingAnchor),
-            experimentView.trailingAnchor.constraint(equalTo: trailingAnchor),
+            experimentView.leadingAnchor.constraint(equalTo: tableView.leadingAnchor),
+            tableView.trailingAnchor.constraint(equalTo: experimentView.trailingAnchor),
             bottomAnchor.constraint(equalTo: experimentView.bottomAnchor)
         ])
+    }
+}
+
+private extension FormView {
+    func makeDataSource() -> UITableViewDiffableDataSource<FormSection, FormData> {
+        return FormViewDiffableDataSource(
+            tableView: tableView,
+            cellProvider: { [unowned self] tableView, indexPath, formData in
+                let section = self.snapshot.sectionIdentifiers[indexPath.section]
+                switch formData.fieldType {
+                case .textField(let pickerElements):
+                    let cell = tableView.dequeueReusableCell(withIdentifier: String(describing: TextFieldCell.self), for: indexPath) as! TextFieldCell
+                    cell.update(with: pickerElements, updateValueAction: { [weak self] element in
+                        self?.updateValue(section: section, element: element)
+                    })
+                    return cell
+                case .slider:
+                    let cell = tableView.dequeueReusableCell(withIdentifier: String(describing: SliderCell.self), for: indexPath) as! SliderCell
+                    cell.update(with: { [weak self] element in
+                        self?.updateValue(section: section, element: element)
+                    })
+                    return cell
+                case .textView(let text):
+                    let cell = tableView.dequeueReusableCell(withIdentifier: String(describing: TextViewCell.self), for: indexPath) as! TextViewCell
+                    cell.update(with: text, updateValueAction: { [weak self] element in
+                        self?.updateText(element: element, row: indexPath.row)
+                    })
+                    return cell
+                }
+        }
+        )
     }
     
     func updateValue(section: FormSection, element: String) {
@@ -150,3 +147,4 @@ private extension FormView {
         }
     }
 }
+
